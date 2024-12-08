@@ -3,7 +3,6 @@ package backend.academy.flame.render.postrocessor.impl;
 import backend.academy.flame.image.FractalImage;
 import backend.academy.flame.image.Pixel;
 import backend.academy.flame.render.postrocessor.ImagePostProcessor;
-
 import java.util.concurrent.ForkJoinPool;
 import java.util.stream.IntStream;
 

@@ -26,30 +26,49 @@ public class LogGammaCorrector implements ImagePostProcessor {
     ) {
         int rangeSize = width / threadCount;
 
-        try (ForkJoinPool pool = new ForkJoinPool(threadCount)) {
-            return pool.submit(() ->
-                IntStream.range(0, threadCount).parallel()
-                    .mapToDouble(threadIndex -> {
-                        int start = threadIndex * rangeSize;
-                        int end = (threadIndex == threadCount - 1) ? width : start + rangeSize;
+        if (threadCount > 1) {
+            try (ForkJoinPool pool = new ForkJoinPool(threadCount)) {
+                return pool.submit(() ->
+                    IntStream.range(0, threadCount).parallel()
+                        .mapToDouble(threadIndex -> {
+                            int start = threadIndex * rangeSize;
+                            int end = (threadIndex == threadCount - 1) ? width : start + rangeSize;
 
-                        double localMaxLog = 0.0;
-                        for (int x = start; x < end; x++) {
-                            for (int y = 0; y < height; y++) {
-                                Pixel pixel = image.pixel(x, y);
-                                if (pixel != null && pixel.hitCount() > 0) {
-                                    double logValue = Math.log10(1 + pixel.hitCount());
-                                    image.setPixel(x, y, new Pixel(
-                                        pixel.r(), pixel.g(), pixel.b(), logValue, pixel.hitCount()));
-                                    localMaxLog = Math.max(localMaxLog, logValue);
-                                }
+                            double localMaxLog = 0.0;
+                            for (int x = start; x < end; x++) {
+                                localMaxLog = getLocalMaxLog(image, height, localMaxLog, x);
                             }
-                        }
-                        return localMaxLog;
-                    })
-                    .max().orElse(0.0)
-            ).join();
+                            return localMaxLog;
+                        })
+                        .max().orElse(0.0)
+                ).join();
+
+            }
+        } else {
+            double maxLog = 0.0;
+            for (int x = 0; x < width; x++) {
+                maxLog = getLocalMaxLog(image, height, maxLog, x);
+            }
+            return maxLog;
         }
+    }
+
+    private double getLocalMaxLog(FractalImage image, int height, double localMaxLog, int x) {
+        double maxLog = 0.0;
+
+        for (int y = 0; y < height; y++) {
+            Pixel pixel = image.pixel(x, y);
+            if (pixel != null && pixel.hitCount() > 0) {
+                double logValue = Math.log10(1 + pixel.hitCount());
+                image.setPixel(x, y, new Pixel(
+                    pixel.r(), pixel.g(), pixel.b(), logValue, pixel.hitCount()));
+
+                maxLog = localMaxLog;
+                maxLog = Math.max(maxLog, logValue);
+
+            }
+        }
+        return maxLog;
     }
 
     private void applyLogGammaCorrection(
@@ -61,26 +80,36 @@ public class LogGammaCorrector implements ImagePostProcessor {
     ) {
         int rangeSize = width / threadCount;
 
-        try (ForkJoinPool pool = new ForkJoinPool(threadCount)) {
-            pool.submit(() ->
-                IntStream.range(0, threadCount).parallel().forEach(threadIndex -> {
-                    int start = threadIndex * rangeSize;
-                    int end = (threadIndex == threadCount - 1) ? width : start + rangeSize;
+        if (threadCount > 1) {
+            try (ForkJoinPool pool = new ForkJoinPool(threadCount)) {
+                pool.submit(() ->
+                    IntStream.range(0, threadCount).parallel().forEach(threadIndex -> {
+                        int start = threadIndex * rangeSize;
+                        int end = (threadIndex == threadCount - 1) ? width : start + rangeSize;
 
-                    for (int x = start; x < end; x++) {
-                        for (int y = 0; y < height; y++) {
-                            Pixel pixel = image.pixel(x, y);
-                            if (pixel == null) {
-                                continue;
-                            }
-
-                            Pixel newPixel = getPixel(maxLog, pixel);
-
-                            image.setPixel(x, y, newPixel);
+                        for (int x = start; x < end; x++) {
+                            applyLogGammaCorrectionOnPixels(image, height, maxLog, x);
                         }
-                    }
-                })
-            ).join();
+                    })
+                ).join();
+            }
+        } else {
+            for (int x = 0; x < width; x++) {
+                applyLogGammaCorrectionOnPixels(image, height, maxLog, x);
+            }
+        }
+    }
+
+    private void applyLogGammaCorrectionOnPixels(FractalImage image, int height, double maxLog, int x) {
+        for (int y = 0; y < height; y++) {
+            Pixel pixel = image.pixel(x, y);
+            if (pixel == null) {
+                continue;
+            }
+
+            Pixel newPixel = getPixel(maxLog, pixel);
+
+            image.setPixel(x, y, newPixel);
         }
     }
 
@@ -96,5 +125,4 @@ public class LogGammaCorrector implements ImagePostProcessor {
             ? new Pixel(r, g, b, gammaCorrected, pixel.hitCount())
             : new Pixel(0, 0, 0, 0, 0);
     }
-
 }

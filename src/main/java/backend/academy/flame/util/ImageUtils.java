@@ -41,26 +41,38 @@ public class ImageUtils {
         int height = image.height();
         int rangeSize = height / threadCount;
 
-        try (ForkJoinPool pool = new ForkJoinPool(threadCount)) {
-            pool.submit(() ->
-                IntStream.range(0, threadCount).parallel().forEach(threadIndex -> {
-                    int startY = threadIndex * rangeSize;
-                    int endY = (threadIndex == threadCount - 1) ? height : startY + rangeSize;
+        if (threadCount > 1) {
+            try (ForkJoinPool pool = new ForkJoinPool(threadCount)) {
+                pool.submit(() ->
+                    IntStream.range(0, threadCount).parallel().forEach(threadIndex -> {
+                        int startY = threadIndex * rangeSize;
+                        int endY = (threadIndex == threadCount - 1) ? height : startY + rangeSize;
 
-                    for (int y = startY; y < endY; y++) {
-                        for (int x = 0; x < width; x++) {
-                            Pixel pixel = image.pixel(x, y);
-                            if (pixel != null) {
-                                int color = (pixel.r() << BITS_SHIFT_RED) | (pixel.g() << BITS_SHIFT_GREEN) | pixel.b();
-                                bufferedImage.setRGB(x, y, color);
-                            }
+                        for (int y = startY; y < endY; y++) {
+                            setColorForPixels(image, bufferedImage, width, y);
                         }
-                    }
-                })
-            ).join();
+                    })
+                ).join();
+            }
+        } else {
+            for (int y = 0; y < height; y++) {
+                setColorForPixels(image, bufferedImage, width, y);
+            }
         }
 
+
         return bufferedImage;
+    }
+
+    private static void setColorForPixels(FractalImage image, BufferedImage bufferedImage, int width, int y) {
+        for (int x = 0; x < width; x++) {
+            Pixel pixel = image.pixel(x, y);
+            if (pixel != null) {
+                int color =
+                    (pixel.r() << BITS_SHIFT_RED) | (pixel.g() << BITS_SHIFT_GREEN) | pixel.b();
+                bufferedImage.setRGB(x, y, color);
+            }
+        }
     }
 
 }

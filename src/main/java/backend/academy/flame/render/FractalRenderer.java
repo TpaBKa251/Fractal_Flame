@@ -35,21 +35,30 @@ public class FractalRenderer {
         createLocks(canvas.width(), canvas.height());
         List<Point> rotations = precomputeRotations(symmetry);
         List<AffineTransformation> affineTransformations = initAffineTransforms(iterPerSample);
-        int batchSize = samples / threadCount;
 
-        try (ForkJoinPool pool = new ForkJoinPool(threadCount)) {
-            pool.submit(() -> IntStream.range(0, threadCount).parallel().forEach(threadIndex -> {
-                int start = threadIndex * batchSize;
-                int end = (threadIndex == threadCount - 1) ? samples : start + batchSize;
+        if (threadCount > 1) {
+            int batchSize = samples / threadCount;
 
-                for (int i = start; i < end; i++) {
-                    processSample(canvas, world, variations, affineTransformations, iterPerSample, symmetry, rotations);
-                }
-            }));
-            pool.shutdown();
-            pool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            try (ForkJoinPool pool = new ForkJoinPool(threadCount)) {
+                pool.submit(() -> IntStream.range(0, threadCount).parallel().forEach(threadIndex -> {
+                    int start = threadIndex * batchSize;
+                    int end = (threadIndex == threadCount - 1) ? samples : start + batchSize;
+
+                    for (int i = start; i < end; i++) {
+                        processSample(canvas, world, variations, affineTransformations, iterPerSample, symmetry,
+                            rotations);
+                    }
+                }));
+                pool.shutdown();
+                pool.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        } else {
+            for (int i = 0; i < samples; i++) {
+                processSample(canvas, world, variations, affineTransformations, iterPerSample, symmetry,
+                    rotations);
+            }
         }
 
         return canvas;

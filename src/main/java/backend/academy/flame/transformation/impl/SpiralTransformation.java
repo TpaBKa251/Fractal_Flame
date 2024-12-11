@@ -11,7 +11,7 @@ public class SpiralTransformation implements Transformation {
         double o = getTheta(point.x(), point.y());
 
         double x = (Math.cos(o) + Math.sin(r)) / r;
-        double y = (Math.sin(o) + Math.cos(r)) / r;
+        double y = (Math.sin(o) - Math.cos(r)) / r;
 
         return new Point(x, y);
     }

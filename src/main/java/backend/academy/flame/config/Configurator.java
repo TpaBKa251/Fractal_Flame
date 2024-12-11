@@ -6,9 +6,9 @@ import backend.academy.flame.image.Rect;
 import backend.academy.flame.transformation.Transformation;
 import backend.academy.flame.transformation.TransformationType;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Scanner;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
@@ -105,13 +105,13 @@ public class Configurator {
 
         String[] transformationNumbers = scanner.nextLine().trim().split(SPACES);
 
-        List<Transformation> transformations = new ArrayList<>(transformationNumbers.length);
+        Set<Transformation> transformations = new HashSet<>(transformationNumbers.length);
 
         for (String transformationNumber : transformationNumbers) {
             transformations.add(TransformationType.getTransformationByNumber(transformationNumber));
         }
 
-        configurationBuilder.transformations(transformations);
+        configurationBuilder.transformations(transformations.stream().toList());
     }
 
     private void setPointCount() {

@@ -15,9 +15,9 @@ class SpiralTransformationTest {
 
     @ParameterizedTest(name = "Исходная тока: ({0}; {1}), ожидаемая точка: ({2}; {3})")
     @CsvSource({
-        "1.0, 0.0, 0.841471, 1.540302",
-        "0.0, 1.0, 1.841471, 0.540302",
-        "1.0, 1.0, 1.198455, 0.610268"
+        "1.0, 0.0, 0.841471, 0.459698",
+        "0.0, 1.0, 1.841471, -0.540302",
+        "1.0, 1.0, 1.198455, 0.389731"
     })
     void testApply(double x, double y, double expectedX, double expectedY) {
         Point result = transformation.apply(new Point(x, y));

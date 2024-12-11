@@ -10,6 +10,6 @@ public interface Transformation extends Function<Point, Point> {
     }
 
     default double getTheta(double x, double y) {
-        return Math.atan2(x, y);
+        return Math.atan(x / y);
     }
 }
